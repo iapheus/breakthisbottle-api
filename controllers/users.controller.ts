@@ -14,11 +14,11 @@ interface UserCredentials {
   dateOfBirth?: Date;
 }
 
-// GET -> /api/users/:id
+// GET -> /api/users/:username +++
 export const getUser = async (req: Request, res: Response): Promise<void> => {
-  const id: string = req.params.id;
+  const username: string = req.params.username;
   try {
-    const user = await User.findById(id);
+    const user = await User.findOne({ username });
     if (user) {
       res.status(200).json({
         success: true,
@@ -31,14 +31,15 @@ export const getUser = async (req: Request, res: Response): Promise<void> => {
           dateOfBirth: user.dateOfBirth,
         },
       });
+    } else {
+      res.status(404).json({ success: false, error: messages.userNotFound });
     }
-    res.status(404).json({ success: false, error: messages.userNotFound });
   } catch (err) {
     res.status(400).json({ success: false, error: errorCodes[err] });
   }
 };
 
-// POST -> /api/users/create
+// POST -> /api/users/create +++
 export const createUser = async (
   req: Request,
   res: Response
@@ -61,95 +62,92 @@ export const createUser = async (
   }
 };
 
-// PATCH -> /api/users/update
+// PATCH -> /api/users/update/:id +++ TODO: JWT
 export const updateUser = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const user: UserCredentials = req.body.user;
-  const id: string = req.body.id;
+  const user: UserCredentials = req.body;
+  const id: string = req.params.id;
 
   try {
     const existingUser = await User.findById(id)!;
-
     if (!existingUser) {
       res.status(404).json({
         success: false,
         error: messages.userNotFound,
       });
-    }
-
-    if (existingUser?.password != user.password) {
-      const hashedPassword = await bcrypt.hash(user.password, 10);
-
-      const updatedUser = await User.findByIdAndUpdate(
-        id,
-        {
-          ...user,
-          password: hashedPassword,
-        },
-        {
-          new: true,
-          runValidators: true,
-        }
-      );
-
-      await updatedUser?.save();
+    } else {
+      const updatedUser = await User.findByIdAndUpdate(id, user, {
+        new: true,
+        runValidators: true,
+      });
 
       res.status(200).json({
         status: true,
         data: updatedUser,
       });
-
-      return;
     }
-
-    const updatedUser = await User.findByIdAndUpdate(id, user, {
-      new: true,
-      runValidators: true,
-    });
-
-    if (!updatedUser) {
-      res.status(404).json({
-        status: false,
-        error: messages.userNotFound,
-      });
-      return;
-    }
-
-    await updatedUser?.save();
-
-    res.status(200).json({
-      status: true,
-      data: updatedUser,
-    });
-
-    return;
   } catch (err) {
+    console.log(err);
     res.status(500).json({
       status: false,
       error: errorCodes[err.code],
     });
-    return;
   }
 };
 
-// DELETE -> /api/users/delete
+// DELETE -> /api/users/delete/:id +++ TODO: JWT
 export const deleteUser = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const user: UserCredentials = req.body;
+  const id: string = req.params.id;
   // const jwtId: string | undefined = req.headers.authorization;
 
-  const _ = await User.findOneAndDelete(user);
-  res.status(200).json({ success: true, message: messages.accountDeleted });
+  try {
+    const _ = await User.findByIdAndDelete(id);
+
+    if (_ !== null)
+      res.status(200).json({ success: true, message: messages.accountDeleted });
+    else res.status(404).json({ success: false, error: messages.userNotFound });
+  } catch (err) {
+    res.status(500).json({ status: false, error: errorCodes[err.code] });
+  }
 };
 
-// PATCH -> /api/users/changePassword
+// PATCH -> /api/users/changePassword/:id +++ TODO: JWT
 export const changePassword = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  res.status(200).json({ success: true });
+  const id: string = req.params.id;
+  const {
+    newPassword,
+    newPasswordRepeat,
+  }: { newPassword: string; newPasswordRepeat: string } = req.body;
+
+  if (newPassword != newPasswordRepeat) {
+    res
+      .status(400)
+      .json({ success: false, message: messages.passwordMismatch });
+  }
+
+  try {
+    const _ = await User.findById(id);
+    if (!_) {
+      res.status(404).json({ success: false, message: messages.userNotFound });
+    } else {
+      const password = await bcrypt.hash(newPassword, 10);
+      await User.findByIdAndUpdate(
+        id,
+        { password },
+        {
+          new: true,
+          runValidators: true,
+        }
+      );
+      res.status(200).json({ success: true });
+    }
+  } catch (error) {}
 };

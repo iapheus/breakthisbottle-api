@@ -2,6 +2,12 @@ import { Request, Response } from 'express';
 import { User } from '../models/user.model';
 import bcrypt from 'bcrypt';
 import { errorCodes, messages } from '../utils/returnCodes';
+import jsonwebtoken from 'jsonwebtoken';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const JWT_SECRET = process.env.JWT_SECRET;
 
 interface UserCredentials {
   username: string;
@@ -13,6 +19,31 @@ interface UserCredentials {
   profilePicture?: string;
   dateOfBirth?: Date;
 }
+
+// POST -> /api/users/login
+export const loginUser = async (req: Request, res: Response): Promise<void> => {
+  const { email, password }: UserCredentials = req.body;
+
+  const user = await User.findOne({ email });
+
+  if (user) {
+    if (await bcrypt.compare(password, user.password!)) {
+      const token = jsonwebtoken.sign(
+        {
+          id: user._id,
+          username: user.username,
+        },
+        JWT_SECRET,
+        { expiresIn: '1h' }
+      );
+      res.status(200).json({ success: true, token: token });
+    } else {
+      res.status(400).json({ status: false, message: messages.wrongPassword });
+    }
+  } else {
+    res.status(404).json({ success: false, message: messages.userNotFound });
+  }
+};
 
 // GET -> /api/users/:username +++
 export const getUser = async (req: Request, res: Response): Promise<void> => {
@@ -69,6 +100,8 @@ export const updateUser = async (
 ): Promise<void> => {
   const user: UserCredentials = req.body;
   const id: string = req.params.id;
+  const jwt: string | undefined =
+    req.headers.authorization?.split(' ')[1] || undefined;
 
   try {
     const existingUser = await User.findById(id)!;

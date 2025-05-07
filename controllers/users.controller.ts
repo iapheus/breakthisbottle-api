@@ -45,7 +45,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-// GET -> /api/users/:username +++
+// GET -> /api/users/:username
 export const getUser = async (req: Request, res: Response): Promise<void> => {
   const username: string = req.params.username;
   try {
@@ -70,7 +70,7 @@ export const getUser = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-// POST -> /api/users/create +++
+// POST -> /api/users/create
 export const createUser = async (
   req: Request,
   res: Response
@@ -93,25 +93,41 @@ export const createUser = async (
   }
 };
 
-// PATCH -> /api/users/update/:id +++ TODO: JWT
+// PATCH -> /api/users/update
 export const updateUser = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   const user: UserCredentials = req.body;
-  const id: string = req.params.id;
-  const jwt: string | undefined =
-    req.headers.authorization?.split(' ')[1] || undefined;
+  const jwt: any = req.headers.authorization?.split(' ')[1] || undefined;
+
+  let decodedToken: any;
+  try {
+    decodedToken = jsonwebtoken.verify(jwt, JWT_SECRET);
+  } catch (err) {
+    if (err instanceof jsonwebtoken.JsonWebTokenError) {
+      res
+        .status(401)
+        .json({ success: false, message: messages.sessionExpired });
+      return;
+    }
+  }
+
+  if (!decodedToken.id || !decodedToken || jwt == undefined) {
+    res.status(403).json({ success: false, message: messages.accessDenied });
+    return;
+  }
 
   try {
-    const existingUser = await User.findById(id)!;
+    const existingUser = await User.findById(decodedToken.id)!;
     if (!existingUser) {
       res.status(404).json({
         success: false,
         error: messages.userNotFound,
       });
+      return;
     } else {
-      const updatedUser = await User.findByIdAndUpdate(id, user, {
+      const updatedUser = await User.findByIdAndUpdate(decodedToken.id, user, {
         new: true,
         runValidators: true,
       });
@@ -120,6 +136,7 @@ export const updateUser = async (
         status: true,
         data: updatedUser,
       });
+      return;
     }
   } catch (err) {
     console.log(err);
@@ -127,19 +144,36 @@ export const updateUser = async (
       status: false,
       error: errorCodes[err.code],
     });
+    return;
   }
 };
 
-// DELETE -> /api/users/delete/:id +++ TODO: JWT
+// DELETE -> /api/users/delete
 export const deleteUser = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const id: string = req.params.id;
-  // const jwtId: string | undefined = req.headers.authorization;
+  const jwt: any = req.headers.authorization?.split(' ')[1] || undefined;
+
+  let decodedToken: any;
+  try {
+    decodedToken = jsonwebtoken.verify(jwt, JWT_SECRET);
+  } catch (err) {
+    if (err instanceof jsonwebtoken.JsonWebTokenError) {
+      res
+        .status(401)
+        .json({ success: false, message: messages.sessionExpired });
+      return;
+    }
+  }
+
+  if (!decodedToken.id || !decodedToken || jwt == undefined) {
+    res.status(403).json({ success: false, message: messages.accessDenied });
+    return;
+  }
 
   try {
-    const _ = await User.findByIdAndDelete(id);
+    const _ = await User.findByIdAndDelete(decodedToken.id);
 
     if (_ !== null)
       res.status(200).json({ success: true, message: messages.accountDeleted });
@@ -149,12 +183,30 @@ export const deleteUser = async (
   }
 };
 
-// PATCH -> /api/users/changePassword/:id +++ TODO: JWT
+// PATCH -> /api/users/changePassword
 export const changePassword = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const id: string = req.params.id;
+  const jwt: any = req.headers.authorization?.split(' ')[1] || undefined;
+
+  let decodedToken: any;
+  try {
+    decodedToken = jsonwebtoken.verify(jwt, JWT_SECRET);
+  } catch (err) {
+    if (err instanceof jsonwebtoken.JsonWebTokenError) {
+      res
+        .status(401)
+        .json({ success: false, message: messages.sessionExpired });
+      return;
+    }
+  }
+
+  if (!decodedToken.id || !decodedToken || jwt == undefined) {
+    res.status(403).json({ success: false, message: messages.accessDenied });
+    return;
+  }
+
   const {
     newPassword,
     newPasswordRepeat,
@@ -167,13 +219,13 @@ export const changePassword = async (
   }
 
   try {
-    const _ = await User.findById(id);
+    const _ = await User.findById(decodedToken.id);
     if (!_) {
       res.status(404).json({ success: false, message: messages.userNotFound });
     } else {
       const password = await bcrypt.hash(newPassword, 10);
       await User.findByIdAndUpdate(
-        id,
+        decodedToken.id,
         { password },
         {
           new: true,

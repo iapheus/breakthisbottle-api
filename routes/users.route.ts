@@ -15,9 +15,9 @@ router.get('/:username', getUser);
 router.post('/create', createUser);
 router.post('/login', loginUser);
 
-router.patch('/update/:id', updateUser);
-router.patch('/changePassword/:id', changePassword);
+router.patch('/update', updateUser);
+router.patch('/changePassword', changePassword);
 
-router.delete('/delete/:id', deleteUser);
+router.delete('/delete', deleteUser);
 
 export default router;

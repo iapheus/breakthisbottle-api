@@ -5,13 +5,9 @@ meta {
 }
 
 patch {
-  url: http://localhost:3000/api/users/update/:id
+  url: http://localhost:3000/api/users/update
   body: json
-  auth: inherit
-}
-
-params:path {
-  id: 
+  auth: bearer
 }
 
 body:json {

@@ -2,15 +2,16 @@ import mongoose from 'mongoose';
 import { User } from './user.model';
 
 export const messageSchema: mongoose.Schema = new mongoose.Schema({
-  messageId: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: true,
-    unique: true,
-  },
   fromUserId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: false,
+    unique: true,
+  },
+  toUserId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
     unique: true,
   },
   isAnonymous: {

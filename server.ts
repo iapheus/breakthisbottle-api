@@ -26,4 +26,4 @@ mongoose.connect(CONNECTION_STRING, { dbName: DB_NAME }).then(() => {
 });
 
 app.use('/api/messages', messagesRoute);
-app.use('/api/users/', usersRoute);
+app.use('/api/users', usersRoute);

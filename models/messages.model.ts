@@ -6,13 +6,13 @@ export const messageSchema: mongoose.Schema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: false,
-    unique: true,
+    unique: false,
   },
   toUserId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
-    unique: true,
+    unique: false,
   },
   isAnonymous: {
     type: Boolean,

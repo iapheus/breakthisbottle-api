@@ -38,7 +38,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       );
       res.status(200).json({ success: true, token: token });
     } else {
-      res.status(400).json({ status: false, message: messages.wrongPassword });
+      res.status(400).json({ success: false, message: messages.wrongPassword });
     }
   } else {
     res.status(404).json({ success: false, message: messages.userNotFound });
@@ -133,7 +133,7 @@ export const updateUser = async (
       });
 
       res.status(200).json({
-        status: true,
+        success: true,
         data: updatedUser,
       });
       return;
@@ -141,7 +141,7 @@ export const updateUser = async (
   } catch (err) {
     console.log(err);
     res.status(500).json({
-      status: false,
+      success: false,
       error: errorCodes[err.code],
     });
     return;
@@ -179,7 +179,7 @@ export const deleteUser = async (
       res.status(200).json({ success: true, message: messages.accountDeleted });
     else res.status(404).json({ success: false, error: messages.userNotFound });
   } catch (err) {
-    res.status(500).json({ status: false, error: errorCodes[err.code] });
+    res.status(500).json({ success: false, error: errorCodes[err.code] });
   }
 };
 
